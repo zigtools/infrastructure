@@ -8,7 +8,7 @@ Backend for ZLS' opt-in telemetry. Uses Jaeger (UI, querying), Prometheus (metri
 
 ## Development
 
-Modify SITE_ADDRESS in `docker-compose.yml`, then `docker compose --env-file=.dev.env up`
+`docker compose --env-file=.dev.env up`
 
 ## Testing
 
