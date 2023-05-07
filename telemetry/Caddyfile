@@ -1,0 +1,17 @@
+{
+  servers {
+    protocols h1 h2 h2c h3
+  }
+}
+
+{$SITE_ADDRESS} {
+  reverse_proxy jaeger:16686
+}
+
+{$SITE_ADDRESS}:4317 {
+  reverse_proxy h2c://otel_collector:4317
+}
+
+{$SITE_ADDRESS}:4318 {
+  reverse_proxy otel_collector:4318
+}
