@@ -1,12 +1,14 @@
 # telemetry.zigtools.org
 
+Backend for ZLS' opt-in telemetry. Uses Jaeger (UI, querying), Prometheus (metrics storage), Clickhouse (traces storage), the contrib OTEL Collector (ingestion), and Caddy (proxy).
+
 ## Production
 
-`docker-compose up [-d]`
+`docker compose --env-file=.prod.env up [-d]`
 
 ## Development
 
-Modify SITE_ADDRESS in `docker-compose.yml`, then `docker-compose up`
+Modify SITE_ADDRESS in `docker-compose.yml`, then `docker compose --env-file=.dev.env up`
 
 ## Testing
 

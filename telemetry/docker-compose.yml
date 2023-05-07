@@ -1,23 +1,41 @@
 version: "3.5"
 services:
+  jaeger-clickhouse:
+    image: ghcr.io/jaegertracing/jaeger-clickhouse:0.13.0
+    volumes:
+      - jaeger-clickhouse-bin:/plugin
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.4.2.11-alpine
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+    networks:
+      - backend
+    healthcheck:
+      test: clickhouse status
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   jaeger:
     networks:
       - backend
     image: jaegertracing/all-in-one:1.45
     volumes:
       - "./jaeger-ui.json:/etc/jaeger/jaeger-ui.json"
+      - "./jaeger-clickhouse.yml:/etc/jaeger/jaeger-clickhouse.yml"
+      - jaeger-clickhouse-bin:/plugin
     command: --query.ui-config /etc/jaeger/jaeger-ui.json
     environment:
+      - SPAN_STORAGE_TYPE=grpc-plugin
+      - GRPC_STORAGE_PLUGIN_BINARY=/plugin/jaeger-clickhouse
+      - GRPC_STORAGE_PLUGIN_CONFIGURATION_FILE=/etc/jaeger/jaeger-clickhouse.yml
       - METRICS_STORAGE_TYPE=prometheus
       - PROMETHEUS_SERVER_URL=http://prometheus:9090
-      - COLLECTOR_OTLP_ENABLED=true
-    # ports:
-      # - "14250:14250"
-      # - "14268:14268"
-      # - "6831:6831/udp"
-      # - "16686:16686"
-      # - "16685:16685"
-      # - "14269:14269"
+    depends_on:
+      jaeger-clickhouse:
+        condition: service_started
+      clickhouse:
+        condition: service_healthy
   otel_collector:
     networks:
       - backend
@@ -25,9 +43,6 @@ services:
     volumes:
       - "./otel-collector-config.yml:/etc/otelcol/otel-collector-config.yml"
     command: --config /etc/otelcol/otel-collector-config.yml
-    # ports:
-    #   - "4317:4317"
-    #   - "4318:4318"
     depends_on:
       - jaeger
   prometheus:
@@ -36,15 +51,12 @@ services:
     image: prom/prometheus:v2.37.8
     volumes:
       - "./prometheus.yml:/etc/prometheus/prometheus.yml"
-    # ports:
-    #   - "9090:9090"
+      - "prometheus:/prometheus"
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
-      # Uncomment below for development
-      - SITE_ADDRESS=localhost
-      # - SITE_ADDRESS=telemetry.zigtools.org
+      - SITE_ADDRESS=${SITE_ADDRESS}
     ports:
       - "80:80"
       - "443:443"
@@ -58,3 +70,7 @@ services:
       - backend
 networks:
   backend:
+volumes:
+  prometheus:
+  clickhouse:
+  jaeger-clickhouse-bin:
